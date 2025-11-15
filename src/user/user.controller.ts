@@ -71,8 +71,20 @@ export class UserController {
     @UseGuards(JwtGuard)
     @Post('logout')
     logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        res.clearCookie('access_token');
-        res.clearCookie('refresh_token');
+        res.clearCookie('access_token', {
+            signed: true,
+            httpOnly: true,
+            maxAge: this.configService.get<number>("cookie.access_token_max_age"),
+            sameSite: 'none',
+            secure: true,
+        });
+        res.clearCookie('refresh_token', {
+            signed: true,
+            httpOnly: true,
+            maxAge: this.configService.get<number>("cookie.access_token_max_age"),
+            sameSite: 'none',
+            secure: true,
+        });
         this.userService.logout(req.user!);
         return { message: "Logged out" };
     }
