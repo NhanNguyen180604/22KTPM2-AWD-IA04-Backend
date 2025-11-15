@@ -4,7 +4,7 @@ import { RegisterDto } from './dtos/register.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
-import bcrypt from 'node_modules/bcryptjs';
+import  bcrypt from 'bcryptjs';
 import { UserRoleEnum } from './user-role.enum';
 import { TokenService } from 'src/token/token.service';
 import { type Request } from 'express';
