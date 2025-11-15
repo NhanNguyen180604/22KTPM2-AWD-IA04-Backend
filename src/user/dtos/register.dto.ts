@@ -1,6 +1,6 @@
 import { Transform } from "class-transformer";
 import { IsBoolean, IsEmail, IsStrongPassword } from "class-validator";
-import { Match } from "src/validators/match.decorator";
+import { Match } from "../../validators/match.decorator";
 
 export class RegisterDto {
     @IsEmail({}, { message: "Invalid email" })
