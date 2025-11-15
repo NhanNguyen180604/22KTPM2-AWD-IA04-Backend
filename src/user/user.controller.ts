@@ -14,8 +14,8 @@ export class UserController {
     ) { }
 
     @Post('login')
-    async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-        const result = await this.userService.login(loginDto);
+    async login(@Body() loginDto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        const result = await this.userService.login(loginDto, req);
 
         res.cookie('access_token', result.access_token, {
             signed: true,

@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import bcrypt from 'node_modules/bcryptjs';
 import { UserRoleEnum } from './user-role.enum';
 import { TokenService } from 'src/token/token.service';
+import { type Request } from 'express';
 
 export const blacklistTokens = new Set<string>();
 
@@ -23,11 +24,18 @@ export class UserService {
         });
     }
 
-    async login(dto: LoginDto): Promise<{ access_token: string, refresh_token?: string }> {
+    async login(dto: LoginDto, req: Request): Promise<{ access_token: string, refresh_token?: string }> {
         const foundUser = await this.findOneBy('email', dto.email);
         if (!foundUser || !bcrypt.compareSync(dto.password, foundUser.password)) {
             throw new UnauthorizedException("Invalid login credentials");
         }
+
+        const tokens = this.tokenService.extractTokensFromCookies(req);
+        if (tokens && tokens.refresh_token){
+            await this.tokenService.deleteOneRefreshTokenByValue(tokens.refresh_token);
+            await this.tokenService.deleteOneRefreshTokenByUser(foundUser);
+        }
+
         return this.createTokens(foundUser, dto.rememberMe);
     }
 
@@ -50,7 +58,7 @@ export class UserService {
     }
 
     logout(user: User) {
-        this.tokenService.deleteOneRefreshTokenByUser(user);    
+        this.tokenService.deleteOneRefreshTokenByUser(user);
     }
 
     async createTokens(user: User, rememberMe: boolean) {
