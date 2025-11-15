@@ -21,12 +21,16 @@ export class UserController {
             signed: true,
             httpOnly: true,
             maxAge: this.configService.get<number>("cookie.access_token_max_age"),
+            sameSite: 'none',
+            secure: true,
         });
         if (result.refresh_token) {
             res.cookie('refresh_token', result.refresh_token, {
                 signed: true,
                 httpOnly: true,
                 maxAge: this.configService.get<number>("cookie.refresh_token_max_age"),
+                sameSite: 'none',
+                secure: true,
             });
         }
         return result;
@@ -40,12 +44,16 @@ export class UserController {
             signed: true,
             httpOnly: true,
             maxAge: this.configService.get<number>("cookie.access_token_max_age"),
+            sameSite: 'none',
+            secure: true,
         });
         if (result.refresh_token) {
             res.cookie('refresh_token', result.refresh_token, {
                 signed: true,
                 httpOnly: true,
                 maxAge: this.configService.get<number>("cookie.refresh_token_max_age"),
+                sameSite: 'none',
+                secure: true,
             });
         }
         return result;
