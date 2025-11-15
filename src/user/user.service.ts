@@ -1,44 +1,66 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, forwardRef, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from './dtos/login.dto';
-import { users } from './mock-users';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { RegisterDto } from './dtos/register.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/entities/user.entity';
+import { Repository } from 'typeorm';
+import bcrypt from 'node_modules/bcryptjs';
+import { UserRoleEnum } from './user-role.enum';
+import { TokenService } from 'src/token/token.service';
 
 export const blacklistTokens = new Set<string>();
 
 @Injectable()
 export class UserService {
     constructor(
-        private readonly jwtService: JwtService,
-        @Inject(ConfigService) private readonly configService: ConfigService,
+        @InjectRepository(User) private readonly usersRepository: Repository<User>,
+        @Inject(forwardRef(() => TokenService)) private readonly tokenService: TokenService,
     ) { }
 
-    login(dto: LoginDto): { access_token: string, refresh_token?: string } {
-        const foundUser = this.findOneBy('email', dto.email);
-        if (!foundUser || foundUser.password !== dto.password) {
+    findOneBy(field: "id" | "email", value: number | string) {
+        return this.usersRepository.findOneBy({
+            [field]: value,
+        });
+    }
+
+    async login(dto: LoginDto): Promise<{ access_token: string, refresh_token?: string }> {
+        const foundUser = await this.findOneBy('email', dto.email);
+        if (!foundUser || !bcrypt.compareSync(dto.password, foundUser.password)) {
             throw new UnauthorizedException("Invalid login credentials");
         }
+        return this.createTokens(foundUser, dto.rememberMe);
+    }
 
-        const payload = { sub: foundUser.id, email: foundUser.email };
+    async register(dto: RegisterDto) {
+        const duplicateEmailUser = await this.findOneBy('email', dto.email);
+        if (duplicateEmailUser) {
+            throw new ConflictException(`User with this email "${dto.email}" already exists`);
+        }
 
-        const access_token = this.jwtService.sign(payload, {
-            secret: this.configService.get("jwt.access_token.secret"),
-            expiresIn: this.configService.get("jwt.access_token.expires_in"),
+        const salt = bcrypt.genSaltSync();
+        const hashedPassword = bcrypt.hashSync(dto.password, salt);
+        let newUser = this.usersRepository.create({
+            email: dto.email,
+            password: hashedPassword,
+            role: UserRoleEnum.USER,
         });
 
-        if (dto.rememberMe) {
-            const refresh_token = this.jwtService.sign({ sub: foundUser.id }, {
-                secret: this.configService.get("jwt.refresh_token.secret"),
-                expiresIn: this.configService.get("jwt.refresh_token.expires_in"),
-            });
+        newUser = await this.usersRepository.save(newUser);
+        return this.createTokens(newUser, dto.rememberMe);
+    }
 
+    logout(user: User) {
+        this.tokenService.deleteOneRefreshTokenByUser(user);    
+    }
+
+    async createTokens(user: User, rememberMe: boolean) {
+        const access_token = await this.tokenService.createOneAccessToken(user);
+
+        if (rememberMe) {
+            const refresh_token = await this.tokenService.createOneRefreshToken(user);
             return { access_token, refresh_token };
         }
 
         return { access_token };
-    }
-
-    findOneBy(field: "id" | "email", value: number | string) {
-        return users.find(u => u[field] === value);
     }
 }

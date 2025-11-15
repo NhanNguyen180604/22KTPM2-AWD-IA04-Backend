@@ -1,6 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
-import { JwtAccessTokenGuard } from './guards/jwt-access_token.guard';
+import { JwtGuard } from './guards/jwt.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorators';
+import { UserRoleEnum } from './user/user-role.enum';
 
 @Controller()
 export class AppController {
@@ -11,9 +14,16 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @UseGuards(JwtAccessTokenGuard)
+  @UseGuards(JwtGuard)
   @Get('protected')
   protectedRoute(): string {
     return "This route is protected";
+  }
+
+  @Roles(UserRoleEnum.ADMIN)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Get('admin-only')
+  adminOnlyRoute(): string {
+    return "This route is for admin only";
   }
 }

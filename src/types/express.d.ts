@@ -1,4 +1,4 @@
-import { type User } from "src/user/mock-users";
+import { User } from "src/entities/user.entity";
 
 declare global {
     namespace Express {

@@ -17,8 +17,12 @@ async function bootstrap() {
 
   app.use(cookieParser(config.get<string>("cookie.secret")));
 
-  app.enableCors();
-  const port = config.get<number>("port") || 8001;
+  app.enableCors({
+    origin: [config.get<string>("frontend_url")],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+  const port = config.get<number>("port") || 8000;
   await app.listen(port, () => {
     console.log(`Backend listening on port ${port}`);
   });
